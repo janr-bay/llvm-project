@@ -3431,19 +3431,17 @@ APInt IEEEFloat::convertPPCDoubleDoubleLegacyAPFloatToAPInt() const {
 template <const fltSemantics &S>
 APInt IEEEFloat::convertIEEEFloatToAPInt() const {
   assert(semantics == &S);
-  const int bias = (semantics == &APFloatBase::semFloat8E8M0FNU)
-                       ? -S.minExponent
-                       : -(S.minExponent - 1);
   constexpr unsigned int trailing_significand_bits = S.precision - 1;
   constexpr int integer_bit_part = trailing_significand_bits / integerPartWidth;
   constexpr integerPart integer_bit =
       integerPart{1} << (trailing_significand_bits % integerPartWidth);
   constexpr uint64_t significand_mask = integer_bit - 1;
   constexpr unsigned int exponent_bits =
-      trailing_significand_bits ? (S.sizeInBits - 1 - trailing_significand_bits)
-                                : S.sizeInBits;
+      S.sizeInBits - (S.hasZero ? 1 : 0) - trailing_significand_bits;
   static_assert(exponent_bits < 64);
   constexpr uint64_t exponent_mask = (uint64_t{1} << exponent_bits) - 1;
+  constexpr bool is_zero_exp_reserved = S.hasDenormals || S.hasZero;
+  constexpr int bias = -(S.minExponent - (is_zero_exp_reserved ? 1 : 0));
 
   uint64_t myexponent;
   std::array<integerPart, partCountForBits(trailing_significand_bits)>
@@ -3745,19 +3743,19 @@ template <const fltSemantics &S>
 void IEEEFloat::initFromIEEEAPInt(const APInt &api) {
   assert(api.getBitWidth() == S.sizeInBits);
 
-  constexpr integerPart has_significand = S.precision != 1;
-  constexpr integerPart integer_bit = integerPart{1}
-                                      << ((S.precision - 1) % integerPartWidth);
-  constexpr uint64_t significand_mask = integer_bit - 1;
   constexpr unsigned int trailing_significand_bits = S.precision - 1;
-  constexpr unsigned int stored_significand_parts =
-      partCountForBits(trailing_significand_bits);
+  constexpr integerPart integer_bit =
+      integerPart{1} << (trailing_significand_bits % integerPartWidth);
+  constexpr uint64_t significand_mask = integer_bit - 1;
   constexpr unsigned int exponent_bits =
       S.sizeInBits - (S.hasZero ? 1 : 0) - trailing_significand_bits;
+  constexpr unsigned int stored_significand_parts =
+      partCountForBits(trailing_significand_bits);
   static_assert(exponent_bits < 64);
   constexpr uint64_t exponent_mask = (uint64_t{1} << exponent_bits) - 1;
   constexpr bool is_zero_exp_reserved = S.hasDenormals || S.hasZero;
   constexpr int bias = -(S.minExponent - (is_zero_exp_reserved ? 1 : 0));
+  constexpr integerPart has_significand = trailing_significand_bits > 0;
 
   // Copy the bits of the significand. We need to clear out the exponent and
   // sign bit in the last word.
