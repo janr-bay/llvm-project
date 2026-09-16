@@ -1019,6 +1019,17 @@ enum class fltNanEncoding {
   NegativeZero,
 };
 
+enum fltOperation {
+  fltOpAdd,
+  fltOpSub,
+  fltOpMul,
+  fltOpDiv,
+  fltOpFMA,
+  fltOpRemainder,
+  fltOpMod,
+  fltOpRoundToIntegral,
+};
+
 /* Represents floating point arithmetic semantics.  */
 struct fltSemantics {
   /* The largest E such that 2^E is representable; this matches the
@@ -1070,6 +1081,8 @@ struct fltSemantics {
 
   void (* customInitFromAPInt)(detail::IEEEFloat&, const APInt&) = nullptr;
   APInt (* customBitcastToAPInt)(const detail::IEEEFloat&) = nullptr;
+
+  void (* fixAfterArithOp)(detail::IEEEFloat&, fltOperation op) = nullptr;
 };
 
 // This is a interface class that is currently forwarding functionalities from

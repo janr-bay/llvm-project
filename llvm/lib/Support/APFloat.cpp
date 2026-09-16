@@ -2128,13 +2128,25 @@ APFloat::opStatus IEEEFloat::addOrSubtract(const IEEEFloat &rhs,
 /* Normalized addition.  */
 APFloat::opStatus IEEEFloat::add(const IEEEFloat &rhs,
                                  roundingMode rounding_mode) {
-  return addOrSubtract(rhs, rounding_mode, false);
+  opStatus fs = addOrSubtract(rhs, rounding_mode, false);
+
+  if (semantics->fixAfterArithOp != nullptr) {
+    semantics->fixAfterArithOp(*this, fltOpAdd);
+  }
+
+  return fs;
 }
 
 /* Normalized subtraction.  */
 APFloat::opStatus IEEEFloat::subtract(const IEEEFloat &rhs,
                                       roundingMode rounding_mode) {
-  return addOrSubtract(rhs, rounding_mode, true);
+  opStatus fs = addOrSubtract(rhs, rounding_mode, true);
+
+  if (semantics->fixAfterArithOp != nullptr) {
+    semantics->fixAfterArithOp(*this, fltOpSub);
+  }
+
+  return fs;
 }
 
 /* Normalized multiply.  */
@@ -2150,6 +2162,10 @@ APFloat::opStatus IEEEFloat::multiply(const IEEEFloat &rhs,
     fs = normalize(rounding_mode, lost_fraction);
     if (lost_fraction != lfExactlyZero)
       fs = (opStatus) (fs | opInexact);
+  }
+
+  if (semantics->fixAfterArithOp != nullptr) {
+    semantics->fixAfterArithOp(*this, fltOpMul);
   }
 
   return fs;
@@ -2168,6 +2184,10 @@ APFloat::opStatus IEEEFloat::divide(const IEEEFloat &rhs,
     fs = normalize(rounding_mode, lost_fraction);
     if (lost_fraction != lfExactlyZero)
       fs = (opStatus) (fs | opInexact);
+  }
+
+  if (semantics->fixAfterArithOp != nullptr) {
+    semantics->fixAfterArithOp(*this, fltOpDiv);
   }
 
   return fs;
@@ -2278,6 +2298,11 @@ APFloat::opStatus IEEEFloat::remainder(const IEEEFloat &rhs) {
   } else {
     sign ^= origSign;
   }
+
+  if (semantics->fixAfterArithOp != nullptr) {
+    semantics->fixAfterArithOp(*this, fltOpRemainder);
+  }
+
   return fs;
 }
 
@@ -2315,6 +2340,11 @@ APFloat::opStatus IEEEFloat::mod(const IEEEFloat &rhs) {
     if (semantics->nanEncoding == fltNanEncoding::NegativeZero)
       sign = false;
   }
+
+  if (semantics->fixAfterArithOp != nullptr) {
+    semantics->fixAfterArithOp(*this, fltOpMod);
+  }
+
   return fs;
 }
 
@@ -2359,6 +2389,10 @@ APFloat::opStatus IEEEFloat::fusedMultiplyAdd(const IEEEFloat &multiplicand,
        precision.  */
     if (fs == opOK)
       fs = addOrSubtract(addend, rounding_mode, false);
+  }
+
+  if (semantics->fixAfterArithOp != nullptr) {
+    semantics->fixAfterArithOp(*this, fltOpFMA);
   }
 
   return fs;
@@ -2445,6 +2479,10 @@ APFloat::opStatus IEEEFloat::roundToIntegral(roundingMode rounding_mode) {
   // Restore the input sign.
   if (inputSign != isNegative())
     changeSign();
+
+  if (semantics->fixAfterArithOp != nullptr) {
+    semantics->fixAfterArithOp(*this, fltOpRoundToIntegral);
+  }
 
   return fs;
 }
