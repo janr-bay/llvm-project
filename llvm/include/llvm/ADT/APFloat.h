@@ -142,6 +142,27 @@ enum lostFraction { // Example of truncated bits:
 namespace detail {
 class IEEEFloat;
 class DoubleAPFloat;
+// Forward declarations for customBitcastToAPInt callback functions
+APInt bitcastIEEEhalfToAPInt(const IEEEFloat &);
+APInt bitcastBFloatToAPInt(const IEEEFloat &);
+APInt bitcastIEEEsingleToAPInt(const IEEEFloat &);
+APInt bitcastIEEEdoubleToAPInt(const IEEEFloat &);
+APInt bitcastIEEEquadToAPInt(const IEEEFloat &);
+APInt bitcastX87DoubleExtendedToAPInt(const IEEEFloat &);
+APInt bitcastPPCDoubleDoubleLegacyToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E5M2ToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E5M2FNUZToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E4M3ToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E4M3FNToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E4M3FNUZToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E4M3B11FNUZToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E3M4ToAPInt(const IEEEFloat &);
+APInt bitcastFloatTF32ToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E8M0FNUToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E5M3FNUToAPInt(const IEEEFloat &);
+APInt bitcastFloat6E3M2FNToAPInt(const IEEEFloat &);
+APInt bitcastFloat6E2M3FNToAPInt(const IEEEFloat &);
+APInt bitcastFloat4E2M1FNToAPInt(const IEEEFloat &);
 } // namespace detail
 
 // This is the common type definitions shared by APFloat and its internal
@@ -297,6 +318,28 @@ private:
   friend class detail::IEEEFloat;
   friend class detail::DoubleAPFloat;
   friend class APFloat;
+
+  // Friend functions for customBitcastToAPInt callbacks (used in fltSemantics)
+  friend APInt detail::bitcastIEEEhalfToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastBFloatToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastIEEEsingleToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastIEEEdoubleToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastIEEEquadToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastX87DoubleExtendedToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastPPCDoubleDoubleLegacyToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat8E5M2ToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat8E5M2FNUZToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat8E4M3ToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat8E4M3FNToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat8E4M3FNUZToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat8E4M3B11FNUZToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat8E3M4ToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloatTF32ToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat8E8M0FNUToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat8E5M3FNUToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat6E3M2FNToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat6E2M3FNToAPInt(const detail::IEEEFloat &);
+  friend APInt detail::bitcastFloat4E2M1FNToAPInt(const detail::IEEEFloat &);
 
 public:
   static const fltSemantics &IEEEhalf() { return semIEEEhalf; }
@@ -850,6 +893,28 @@ private:
   unsigned int sign : 1;
 
   friend class IEEEFloatUnitTestHelper;
+
+  // Friend functions for customBitcastToAPInt callbacks (used in fltSemantics)
+  friend APInt bitcastIEEEhalfToAPInt(const IEEEFloat &);
+  friend APInt bitcastBFloatToAPInt(const IEEEFloat &);
+  friend APInt bitcastIEEEsingleToAPInt(const IEEEFloat &);
+  friend APInt bitcastIEEEdoubleToAPInt(const IEEEFloat &);
+  friend APInt bitcastIEEEquadToAPInt(const IEEEFloat &);
+  friend APInt bitcastX87DoubleExtendedToAPInt(const IEEEFloat &);
+  friend APInt bitcastPPCDoubleDoubleLegacyToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat8E5M2ToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat8E5M2FNUZToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat8E4M3ToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat8E4M3FNToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat8E4M3FNUZToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat8E4M3B11FNUZToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat8E3M4ToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloatTF32ToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat8E8M0FNUToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat8E5M3FNUToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat6E3M2FNToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat6E2M3FNToAPInt(const IEEEFloat &);
+  friend APInt bitcastFloat4E2M1FNToAPInt(const IEEEFloat &);
 };
 
 LLVM_ABI hash_code hash_value(const IEEEFloat &Arg);

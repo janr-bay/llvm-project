@@ -68,68 +68,133 @@ static_assert(APFloatBase::integerPartWidth % 4 == 0, "Part width must be divisi
 
 namespace llvm {
 
-constexpr fltSemantics APFloatBase::semIEEEhalf = {15, -14, 11, 16};
-constexpr fltSemantics APFloatBase::semBFloat = {127, -126, 8, 16};
-constexpr fltSemantics APFloatBase::semIEEEsingle = {127, -126, 24, 32};
-constexpr fltSemantics APFloatBase::semIEEEdouble = {1023, -1022, 53, 64};
-constexpr fltSemantics APFloatBase::semIEEEquad = {16383, -16382, 113, 128};
-constexpr fltSemantics APFloatBase::semFloat8E5M2 = {15, -14, 3, 8};
+// Forward declarations for custom conversion functions used in semantics
+// definitions. These are in namespace detail since they work with IEEEFloat.
+namespace detail {
+APInt bitcastIEEEhalfToAPInt(const IEEEFloat &);
+APInt bitcastBFloatToAPInt(const IEEEFloat &);
+APInt bitcastIEEEsingleToAPInt(const IEEEFloat &);
+APInt bitcastIEEEdoubleToAPInt(const IEEEFloat &);
+APInt bitcastIEEEquadToAPInt(const IEEEFloat &);
+APInt bitcastX87DoubleExtendedToAPInt(const IEEEFloat &);
+APInt bitcastPPCDoubleDoubleLegacyToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E5M2ToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E5M2FNUZToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E4M3ToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E4M3FNToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E4M3FNUZToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E4M3B11FNUZToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E3M4ToAPInt(const IEEEFloat &);
+APInt bitcastFloatTF32ToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E8M0FNUToAPInt(const IEEEFloat &);
+APInt bitcastFloat8E5M3FNUToAPInt(const IEEEFloat &);
+APInt bitcastFloat6E3M2FNToAPInt(const IEEEFloat &);
+APInt bitcastFloat6E2M3FNToAPInt(const IEEEFloat &);
+APInt bitcastFloat4E2M1FNToAPInt(const IEEEFloat &);
+} // namespace detail
+
+constexpr fltSemantics APFloatBase::semIEEEhalf = {
+    15, -14, 11, 16,
+    fltNonfiniteBehavior::IEEE754, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastIEEEhalfToAPInt};
+constexpr fltSemantics APFloatBase::semBFloat = {
+    127, -126, 8, 16,
+    fltNonfiniteBehavior::IEEE754, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastBFloatToAPInt};
+constexpr fltSemantics APFloatBase::semIEEEsingle = {
+    127, -126, 24, 32,
+    fltNonfiniteBehavior::IEEE754, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastIEEEsingleToAPInt};
+constexpr fltSemantics APFloatBase::semIEEEdouble = {
+    1023, -1022, 53, 64,
+    fltNonfiniteBehavior::IEEE754, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastIEEEdoubleToAPInt};
+constexpr fltSemantics APFloatBase::semIEEEquad = {
+    16383, -16382, 113, 128,
+    fltNonfiniteBehavior::IEEE754, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastIEEEquadToAPInt};
+constexpr fltSemantics APFloatBase::semFloat8E5M2 = {
+    15, -14, 3, 8,
+    fltNonfiniteBehavior::IEEE754, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastFloat8E5M2ToAPInt};
 constexpr fltSemantics APFloatBase::semFloat8E5M2FNUZ = {
-    15, -15, 3, 8, fltNonfiniteBehavior::NanOnly, fltNanEncoding::NegativeZero};
-constexpr fltSemantics APFloatBase::semFloat8E4M3 = {7, -6, 4, 8};
+    15, -15, 3, 8,
+    fltNonfiniteBehavior::NanOnly, fltNanEncoding::NegativeZero,
+    true, true, true, true, false,
+    nullptr, detail::bitcastFloat8E5M2FNUZToAPInt};
+constexpr fltSemantics APFloatBase::semFloat8E4M3 = {
+    7, -6, 4, 8,
+    fltNonfiniteBehavior::IEEE754, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastFloat8E4M3ToAPInt};
 constexpr fltSemantics APFloatBase::semFloat8E4M3FN = {
-    8, -6, 4, 8, fltNonfiniteBehavior::NanOnly, fltNanEncoding::AllOnes};
+    8, -6, 4, 8,
+    fltNonfiniteBehavior::NanOnly, fltNanEncoding::AllOnes,
+    true, true, true, true, false,
+    nullptr, detail::bitcastFloat8E4M3FNToAPInt};
 constexpr fltSemantics APFloatBase::semFloat8E4M3FNUZ = {
-    7, -7, 4, 8, fltNonfiniteBehavior::NanOnly, fltNanEncoding::NegativeZero};
+    7, -7, 4, 8,
+    fltNonfiniteBehavior::NanOnly, fltNanEncoding::NegativeZero,
+    true, true, true, true, false,
+    nullptr, detail::bitcastFloat8E4M3FNUZToAPInt};
 constexpr fltSemantics APFloatBase::semFloat8E4M3B11FNUZ = {
-    4, -10, 4, 8, fltNonfiniteBehavior::NanOnly, fltNanEncoding::NegativeZero};
-constexpr fltSemantics APFloatBase::semFloat8E3M4 = {3, -2, 5, 8};
-constexpr fltSemantics APFloatBase::semFloatTF32 = {127, -126, 11, 19};
+    4, -10, 4, 8,
+    fltNonfiniteBehavior::NanOnly, fltNanEncoding::NegativeZero,
+    true, true, true, true, false,
+    nullptr, detail::bitcastFloat8E4M3B11FNUZToAPInt};
+constexpr fltSemantics APFloatBase::semFloat8E3M4 = {
+    3, -2, 5, 8,
+    fltNonfiniteBehavior::IEEE754, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastFloat8E3M4ToAPInt};
+constexpr fltSemantics APFloatBase::semFloatTF32 = {
+    127, -126, 11, 19,
+    fltNonfiniteBehavior::IEEE754, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastFloatTF32ToAPInt};
 constexpr fltSemantics APFloatBase::semFloat8E8M0FNU = {
-    127,
-    -127,
-    1,
-    8,
-    fltNonfiniteBehavior::NanOnly,
-    fltNanEncoding::AllOnes,
-    false,
-    false,
-    false,
-    false};
-
+    127, -127, 1, 8,
+    fltNonfiniteBehavior::NanOnly, fltNanEncoding::AllOnes,
+    false, false, false, false, false,
+    nullptr, detail::bitcastFloat8E8M0FNUToAPInt};
 constexpr fltSemantics APFloatBase::semFloat8E5M3FNU = {
-    16,
-    -14,
-    4,
-    8,
-    fltNonfiniteBehavior::NanOnly,
-    fltNanEncoding::AllOnes,
-    true,
-    false,
-    false};
-
+    16, -14, 4, 8,
+    fltNonfiniteBehavior::NanOnly, fltNanEncoding::AllOnes,
+    true, false, false, true, false,
+    nullptr, detail::bitcastFloat8E5M3FNUToAPInt};
 constexpr fltSemantics APFloatBase::semFloat6E3M2FN = {
-    4, -2, 3, 6, fltNonfiniteBehavior::FiniteOnly};
+    4, -2, 3, 6,
+    fltNonfiniteBehavior::FiniteOnly, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastFloat6E3M2FNToAPInt};
 constexpr fltSemantics APFloatBase::semFloat6E2M3FN = {
-    2, 0, 4, 6, fltNonfiniteBehavior::FiniteOnly};
+    2, 0, 4, 6,
+    fltNonfiniteBehavior::FiniteOnly, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastFloat6E2M3FNToAPInt};
 constexpr fltSemantics APFloatBase::semFloat4E2M1FN = {
-    2, 0, 2, 4, fltNonfiniteBehavior::FiniteOnly};
+    2, 0, 2, 4,
+    fltNonfiniteBehavior::FiniteOnly, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastFloat4E2M1FNToAPInt};
 constexpr fltSemantics APFloatBase::semX87DoubleExtended = {
-    16383,
-    -16382,
-    64,
-    80,
-    fltNonfiniteBehavior::IEEE754,
-    fltNanEncoding::IEEE,
-    true,
-    true,
-    true,
-    true,
-    true};
+    16383, -16382, 64, 80,
+    fltNonfiniteBehavior::IEEE754, fltNanEncoding::IEEE,
+    true, true, true, true, true,
+    nullptr, detail::bitcastX87DoubleExtendedToAPInt};
 constexpr fltSemantics APFloatBase::semBogus = {0, 0, 0, 0};
 constexpr fltSemantics APFloatBase::semPPCDoubleDouble = {-1, 0, 0, 128};
 constexpr fltSemantics APFloatBase::semPPCDoubleDoubleLegacy = {
-    1023, -1022 + 53, 53 + 53, 128};
+    1023, -1022 + 53, 53 + 53, 128,
+    fltNonfiniteBehavior::IEEE754, fltNanEncoding::IEEE,
+    true, true, true, true, false,
+    nullptr, detail::bitcastPPCDoubleDoubleLegacyToAPInt};
 
 const llvm::fltSemantics &APFloatBase::EnumToSemantics(Semantics S) {
   switch (S) {
@@ -3709,77 +3774,77 @@ APInt IEEEFloat::convertFloat4E2M1FNAPFloatToAPInt() const {
   return convertIEEEFloatToAPInt<APFloatBase::semFloat4E2M1FN>();
 }
 
+// Free-standing conversion functions used via customBitcastToAPInt in fltSemantics.
+// These delegate to the templated convertIEEEFloatToAPInt member function.
+APInt bitcastIEEEhalfToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semIEEEhalf>();
+}
+APInt bitcastBFloatToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semBFloat>();
+}
+APInt bitcastIEEEsingleToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semIEEEsingle>();
+}
+APInt bitcastIEEEdoubleToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semIEEEdouble>();
+}
+APInt bitcastIEEEquadToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semIEEEquad>();
+}
+APInt bitcastX87DoubleExtendedToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semX87DoubleExtended>();
+}
+APInt bitcastPPCDoubleDoubleLegacyToAPInt(const IEEEFloat &f) {
+  return f.convertPPCDoubleDoubleLegacyAPFloatToAPInt();
+}
+APInt bitcastFloat8E5M2ToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat8E5M2>();
+}
+APInt bitcastFloat8E5M2FNUZToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat8E5M2FNUZ>();
+}
+APInt bitcastFloat8E4M3ToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat8E4M3>();
+}
+APInt bitcastFloat8E4M3FNToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat8E4M3FN>();
+}
+APInt bitcastFloat8E4M3FNUZToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat8E4M3FNUZ>();
+}
+APInt bitcastFloat8E4M3B11FNUZToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat8E4M3B11FNUZ>();
+}
+APInt bitcastFloat8E3M4ToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat8E3M4>();
+}
+APInt bitcastFloatTF32ToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloatTF32>();
+}
+APInt bitcastFloat8E8M0FNUToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat8E8M0FNU>();
+}
+APInt bitcastFloat8E5M3FNUToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat8E5M3FNU>();
+}
+APInt bitcastFloat6E3M2FNToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat6E3M2FN>();
+}
+APInt bitcastFloat6E2M3FNToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat6E2M3FN>();
+}
+APInt bitcastFloat4E2M1FNToAPInt(const IEEEFloat &f) {
+  return f.convertIEEEFloatToAPInt<APFloatBase::semFloat4E2M1FN>();
+}
+
 // This function creates an APInt that is just a bit map of the floating
 // point constant as it would appear in memory.  It is not a conversion,
 // and treating the result as a normal integer is unlikely to be useful.
 
 APInt IEEEFloat::bitcastToAPInt() const {
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semIEEEhalf)
-    return convertHalfAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semBFloat)
-    return convertBFloatAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semIEEEsingle)
-    return convertFloatAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semIEEEdouble)
-    return convertDoubleAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semIEEEquad)
-    return convertQuadrupleAPFloatToAPInt();
-
-  if (semantics ==
-      (const llvm::fltSemantics *)&APFloatBase::semPPCDoubleDoubleLegacy)
-    return convertPPCDoubleDoubleLegacyAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloat8E5M2)
-    return convertFloat8E5M2APFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloat8E5M2FNUZ)
-    return convertFloat8E5M2FNUZAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloat8E4M3)
-    return convertFloat8E4M3APFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloat8E4M3FN)
-    return convertFloat8E4M3FNAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloat8E4M3FNUZ)
-    return convertFloat8E4M3FNUZAPFloatToAPInt();
-
-  if (semantics ==
-      (const llvm::fltSemantics *)&APFloatBase::semFloat8E4M3B11FNUZ)
-    return convertFloat8E4M3B11FNUZAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloat8E3M4)
-    return convertFloat8E3M4APFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloatTF32)
-    return convertFloatTF32APFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloat8E8M0FNU)
-    return convertFloat8E8M0FNUAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloat8E5M3FNU)
-    return convertFloat8E5M3FNUAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloat6E3M2FN)
-    return convertFloat6E3M2FNAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloat6E2M3FN)
-    return convertFloat6E2M3FNAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semFloat4E2M1FN)
-    return convertFloat4E2M1FNAPFloatToAPInt();
-
-  if (semantics == (const llvm::fltSemantics *)&APFloatBase::semX87DoubleExtended)
-    return convertF80LongDoubleAPFloatToAPInt();
-
-  if (semantics->customBitcastToAPInt != nullptr)
-    return semantics->customBitcastToAPInt(*this);
-
-  llvm_unreachable("unsupported semantics");
+  assert(semantics->customBitcastToAPInt != nullptr &&
+         "semantics must have customBitcastToAPInt defined");
+  return semantics->customBitcastToAPInt(*this);
 }
 
 float IEEEFloat::convertToFloat() const {
