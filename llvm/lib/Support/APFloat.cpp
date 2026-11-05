@@ -87,14 +87,14 @@ unsigned int IEEEFloat::partCountForSemantic() {
 }
 
 template <const fltSemantics &S> APInt bitcastForSemantics(const FloatRepr &R) {
-  const IEEEFloat &f{IEEEFloat::fromRepr(R)};
+  const IEEEFloat &f{R.get()};
   assert(f.partCount() == IEEEFloat::partCountForSemantic<S>());
   return f.convertIEEEFloatToAPInt<S>();
 }
 
 template <const fltSemantics &S>
 void initFromAPIntForSemantics(FloatRepr &R, const APInt &api) {
-  IEEEFloat::fromRepr(R).initFromIEEEAPInt<S>(api);
+  R.get().initFromIEEEAPInt<S>(api);
 }
 } // namespace detail
 
@@ -3775,7 +3775,8 @@ APInt IEEEFloat::convertIEEEFloatToAPInt<
   IEEEFloat u(extended);
   fs = u.convert(APFloatBase::semIEEEdouble, rmNearestTiesToEven, &losesInfo);
   assert(fs == opOK || fs == opInexact);
-  words[0] = *bitcastForSemantics<APFloatBase::semIEEEdouble>(FloatRepr(u))
+  words[0] = *bitcastForSemantics<APFloatBase::semIEEEdouble>(
+                  reinterpret_cast<FloatRepr &>(u))
                   .getRawData();
 
   // If conversion was exact or resulted in a special case, we're done;
@@ -3790,7 +3791,8 @@ APInt IEEEFloat::convertIEEEFloatToAPInt<
     v.subtract(u, rmNearestTiesToEven);
     fs = v.convert(APFloatBase::semIEEEdouble, rmNearestTiesToEven, &losesInfo);
     assert(fs == opOK && !losesInfo);
-    words[1] = *bitcastForSemantics<APFloatBase::semIEEEdouble>(FloatRepr(v))
+    words[1] = *bitcastForSemantics<APFloatBase::semIEEEdouble>(
+                    reinterpret_cast<FloatRepr &>(v))
                     .getRawData();
   } else {
     words[1] = 0;
@@ -3880,8 +3882,7 @@ APInt IEEEFloat::convertIEEEFloatToAPInt() const {
 APInt IEEEFloat::bitcastToAPInt() const {
   assert(semantics->bitcastToAPInt != nullptr &&
          "semantics must have bitcastToAPInt defined");
-  const FloatRepr R(const_cast<IEEEFloat &>(*this));
-  return semantics->bitcastToAPInt(R);
+  return semantics->bitcastToAPInt(reinterpret_cast<const FloatRepr &>(*this));
 }
 
 float IEEEFloat::convertToFloat() const {
@@ -4079,8 +4080,7 @@ void IEEEFloat::initFromAPInt(const fltSemantics *Sem, const APInt &api) {
   assert(api.getBitWidth() == Sem->sizeInBits);
   assert(Sem->initFromAPInt != nullptr &&
          "semantics must have initFromAPInt defined");
-  FloatRepr R(*this);
-  Sem->initFromAPInt(R, api);
+  Sem->initFromAPInt(reinterpret_cast<FloatRepr &>(*this), api);
 }
 
 /// Make this number the largest magnitude normal number in the given
@@ -5932,48 +5932,60 @@ DoubleAPFloat frexp(const DoubleAPFloat &Arg, int &Exp,
 APInt DoubleAPFloat::getNaNPayload() const { return Floats[0].getNaNPayload(); }
 } // namespace detail
 
-detail::IEEEFloat &detail::IEEEFloat::fromRepr(const FloatRepr &R) {
-  return *R.Repr;
+const detail::IEEEFloat &FloatRepr::get() const {
+  return reinterpret_cast<const detail::IEEEFloat &>(*this);
 }
 
-void FloatRepr::initialize(const fltSemantics &Sem) { Repr->initialize(&Sem); }
+detail::IEEEFloat &FloatRepr::get() {
+  return reinterpret_cast<detail::IEEEFloat &>(*this);
+}
 
-const fltSemantics &FloatRepr::getSemantics() const { return *Repr->semantics; }
+FloatRepr &FloatRepr::wrap(detail::IEEEFloat &F) {
+  return reinterpret_cast<FloatRepr &>(F);
+}
+
+const FloatRepr &FloatRepr::wrap(const detail::IEEEFloat &F) {
+  return reinterpret_cast<const FloatRepr &>(F);
+}
+
+void FloatRepr::initialize(const fltSemantics &Sem) { get().initialize(&Sem); }
+
+const fltSemantics &FloatRepr::getSemantics() const { return *get().semantics; }
 
 APFloatBase::fltCategory FloatRepr::getCategory() const {
-  return Repr->category;
+  return get().category;
 }
 
-bool FloatRepr::isNegative() const { return Repr->sign; }
+bool FloatRepr::isNegative() const { return get().sign; }
 
 APFloatBase::ExponentType FloatRepr::getExponent() const {
-  return Repr->exponent;
+  return get().exponent;
 }
 
 APInt FloatRepr::getSignificand() const {
-  return APInt(Repr->semantics->precision,
-               ArrayRef(Repr->significandParts(), Repr->partCount()));
+  return APInt(get().semantics->precision,
+               ArrayRef(get().significandParts(), get().partCount()));
 }
 
 void FloatRepr::setCategory(APFloatBase::fltCategory Category) {
-  Repr->category = Category;
+  get().category = Category;
 }
 
 void FloatRepr::setNegative(bool Negative) {
-  assert((!Negative || Repr->semantics->hasSignedRepr) &&
+  assert((!Negative || get().semantics->hasSignedRepr) &&
          "This floating point format does not support signed values");
-  Repr->sign = Negative;
+  get().sign = Negative;
 }
 
 void FloatRepr::setExponent(APFloatBase::ExponentType Exponent) {
-  Repr->exponent = Exponent;
+  get().exponent = Exponent;
 }
 
 void FloatRepr::setSignificand(const APInt &Significand) {
-  assert(Significand.getBitWidth() == Repr->semantics->precision &&
+  assert(Significand.getBitWidth() == get().semantics->precision &&
          "significand must be precision bits wide");
-  APFloatBase::integerPart *Parts = Repr->significandParts();
-  unsigned PartCount = Repr->partCount();
+  APFloatBase::integerPart *Parts = get().significandParts();
+  unsigned PartCount = get().partCount();
   APInt::tcSet(Parts, 0, PartCount);
   std::copy_n(Significand.getRawData(),
               std::min(PartCount, Significand.getNumWords()), Parts);

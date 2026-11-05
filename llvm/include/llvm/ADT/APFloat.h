@@ -779,8 +779,6 @@ private:
 
   /// @}
 
-  static IEEEFloat &fromRepr(const FloatRepr &R);
-
   template <const fltSemantics &S>
   friend APInt bitcastForSemantics(const FloatRepr &R);
 
@@ -998,10 +996,17 @@ enum class fltNanEncoding {
 /// internals of APFloat without making them public and to hide the concrete
 /// class used in APFloat
 class FloatRepr {
-  detail::IEEEFloat *Repr;
-
   friend class detail::IEEEFloat;
-  explicit FloatRepr(detail::IEEEFloat &F) : Repr(&F) {}
+  template <const fltSemantics &S>
+  friend APInt detail::bitcastForSemantics(const FloatRepr &R);
+  template <const fltSemantics &S>
+  friend void detail::initFromAPIntForSemantics(FloatRepr &R, const APInt &api);
+
+  detail::IEEEFloat &get();
+  const detail::IEEEFloat &get() const;
+
+  static FloatRepr &wrap(detail::IEEEFloat &F);
+  static const FloatRepr &wrap(const detail::IEEEFloat &F);
 
 public:
   /// Set the semantics and allocate storage for the significand. Must be
